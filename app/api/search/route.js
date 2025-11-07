@@ -8,16 +8,14 @@ export async function GET(req) {
   const endpoint = "https://api.viator.com/partner/v2/products/search";
 
   try {
-    const res = await fetch(`${endpoint}?text=${encodeURIComponent(q)}&count=${limit}`, {
+    const res = await fetch(`${endpoint}?text=${encodeURIComponent(q)}&count=${limit}&currency=USD&locale=en`, {
       headers: {
         "Accept": "application/json;version=2.0",
-        "exp-api-key": process.env.VIATOR_API_KEY,
+        "X-EXP-API-KEY": process.env.VIATOR_API_KEY, // Viết đúng header
       },
-      // Thêm timeout ngắn để tránh treo API
       cache: "no-store",
     });
 
-    // Xử lý giới hạn tần suất hoặc lỗi
     if (res.status === 429) {
       return new Response(JSON.stringify({ error: "Rate limit exceeded. Please slow down." }), {
         status: 429,
@@ -32,18 +30,16 @@ export async function GET(req) {
     }
 
     const data = await res.json();
-
-    // Gắn affiliate link
     const affiliateId = "P00249983";
-    const tours =
-      data?.data?.products?.map((p) => ({
-        id: p.code,
-        title: p.title,
-        rating: p.reviewsStats?.averageRating || 0,
-        price: p.pricingInfo?.formattedPrice || "N/A",
-        image: p.images?.[0]?.variants?.[0]?.url || "",
-        link: `https://www.viator.com/tours/${p.destination?.slug}/${p.code}?pid=${affiliateId}`,
-      })) || [];
+
+    const tours = data?.data?.products?.map((p) => ({
+      id: p.code,
+      title: p.title,
+      rating: p.reviewsStats?.averageRating || 0,
+      price: p.pricingInfo?.formattedPrice || "N/A",
+      image: p.images?.[0]?.variants?.[0]?.url || "",
+      link: `https://www.viator.com/tours/${p.destination?.slug}/${p.code}?pid=${affiliateId}`,
+    })) || [];
 
     return new Response(JSON.stringify({ results: tours }), {
       status: 200,
